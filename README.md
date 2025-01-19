@@ -1,2 +1,2 @@
 # Astro400B
-Homework assignments
+Homeworks and assignments location
