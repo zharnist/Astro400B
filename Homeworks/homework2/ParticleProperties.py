@@ -47,7 +47,7 @@ def particleproperties(MW_000): #Defines the function particle properties using 
     vy_type=vy[index][99] #velocity in y
     vz_type=vz[index][99] #velocity in z
 
-    mass_type=data['m'][index][99]#extracts the mass of the 100th particle from the data
+    mass_type=data['m'][index][99]*1e10#extracts the mass of the 100th particle from the data
 
     distance = np.sqrt(x_type**2 + y_type**2 +z_type**2) #This is the equation we use to solve for distance with the particles x,y,z coordinates
     distance_ly = distance.to(u.lyr) #Here we convert the units to light years from kpc
