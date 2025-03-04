@@ -22,7 +22,11 @@ from ReadFile import Read
 from CenterOfMass2 import CenterOfMass
 
 
+
 import os
+print(os.path.exists("VLowRes/MW/MW_000.txt"))
+print(os.path.exists("VLowRes/M31/M31_000.txt"))
+print(os.path.exists("VLowRes/M33/M33_000.txt"))
 
 
 
@@ -73,8 +77,9 @@ def OrbitCOM(galaxy, start, end, n):
         COM_v = COM.COM_V(COM_p[0], COM_p[1], COM_p[2])
         
         # Store the time, pos, vel in ith element of the orbit array, without units (.value)
-        orbit[i] = [COM.time / 1000, COM_p[0].value, COM_p[1].value, COM_p[2].value,
-                    COM_v[0].value, COM_v[1].value, COM_v[2].value]
+        orbit[i] = [COM.time.to(u.Myr).value/1000, COM_p[0].value, COM_p[1].value, COM_p[2].value,
+            COM_v[0].value, COM_v[1].value, COM_v[2].value]
+
         
         # Print snap_id to see the progress
         print(f"Processed snapshot {snap_id}")
@@ -149,7 +154,7 @@ plt.xlabel('Time (Gyr)')
 plt.ylabel('Separation (kpc)')
 plt.legend()
 plt.title('Galactic Orbits')
-#plt.show()
+plt.show()
 
 
 
@@ -162,4 +167,46 @@ plt.xlabel('Time (Gyr)')
 plt.ylabel('Velocity (km/s)')
 plt.legend()
 plt.title('Galactic Velocities')
-#plt.show()
+plt.show()
+
+#Questions:
+    '''''
+   How many close encounters will the MW and M31 experience?
+--------------------------------------------------------------
+From the orbital separation plot, we see that MW and M31 
+experience **two** close encounters before they finally merge.
+
+--------------------------------------------------------------
+2.) How is the time evolution of separation and velocity related?
+--------------------------------------------------------------
+- The **separation and relative velocity are anti-correlated**.
+- When MW and M31 approach (separation decreases), their 
+  velocity **increases** due to gravitational attraction.
+- When they move apart after the first encounter, velocity 
+  **decreases** again.
+- This pattern repeats until the final merger.
+
+--------------------------------------------------------------
+3.) When do MW and M31 merge? What happens to M33?
+--------------------------------------------------------------
+- MW and M31 will **merge around 6–7 Gyr into the future** 
+  based on the separation plot.
+- The relative velocity approaches zero at this time.
+- M33's orbit **becomes unstable** after MW and M31 merge:
+  - It may **spiral in and merge** with MW+M31.
+  - It could be **ejected into a new orbit** due to changes 
+    in the gravitational potential.
+
+--------------------------------------------------------------
+4.) What is the decay rate of M33’s orbit after 6 Gyr?
+--------------------------------------------------------------
+- The orbital decay rate is estimated by comparing successive 
+  apocenters after 6 Gyr.
+- If the **apocenter distance decreases by a few kpc per Gyr**, 
+  we estimate:
+
+  Decay rate = (Change in Apocenter Distance) / (Orbital Period)
+
+- If M33 is currently **~75 kpc** from MW+M31:
+ It will merge in **~10–15 Gyr** if the decay is steady.
+    ''
