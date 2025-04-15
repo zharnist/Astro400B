@@ -98,9 +98,9 @@ def OrbitCOM(galaxy, start, end, n):
 # read in 800 snapshots in intervals of n=5
 # Note: This might take a little while - test your code with a smaller number of snapshots first! 
 
-OrbitCOM("MW", 0, 800, 5)
-OrbitCOM("M31", 0, 800, 5)
-OrbitCOM("M33", 0, 800, 5)
+OrbitCOM("MW", 0, 801, 5)
+OrbitCOM("M31", 0, 801, 5)
+OrbitCOM("M33", 0, 801, 5)
 
 
 # Read in the data files for the orbits of each galaxy that you just created
