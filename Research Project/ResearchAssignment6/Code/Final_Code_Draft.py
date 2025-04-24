@@ -20,7 +20,7 @@ It does the following:
 
 Used code from Homework 2, 4, 6 and Lab 2 and Lab 7.
 Referenced Swapnaneel's R200 code implementation.
-Final formatting guided and assisted by ChatGPT.
+Formatting guided by ChatGPT.
 """
 
 
@@ -30,8 +30,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from astropy import units as u
 from scipy.optimize import curve_fit
-from ReadFile import Read  # Homework 2 / Lab 2
-from CenterOfMass2 import CenterOfMass  # Homework 4
+from ReadFile import Read  
+from CenterOfMass2 import CenterOfMass  #Homework 4
 
 # %% Define Hernquist density model
 def hernquist_density(r, rho0, a):
@@ -58,7 +58,7 @@ def nfw_density(r, rho0, rs):
         Density values at r
     Used from Homework 6
     """
-    return rho0/((r / rs)*(1 + r/rs)**2)
+    return rho0/((r/rs)*(1+r/rs)**2)
 
 
 
@@ -99,7 +99,7 @@ def compute_combined_COM(merged):
         merged: dictionary of particle data
     Returns:
         np.array of COM[x, y, z]
-    From Homwork 4
+    From Homework 4
     """
     m,x,y,z = merged['m'], merged['x'], merged['y'], merged['z']
     COM_x = np.sum(x*m)/np.sum(m)
@@ -117,7 +117,7 @@ def compute_radial_quantities(merged, COM):
     Returns:
         r: radius array
         v_rad: radial velocity array
-    Used from homewrok6
+    Used from Homework 6
     """
     x = merged['x']-COM[0]
     y = merged['y']-COM[1]
@@ -132,7 +132,7 @@ def compute_radial_quantities(merged, COM):
 # %% Compute density and radial velocity profiles
 def compute_profiles(r, v_rad, m, rmin=1, rmax=300):
     """
-    Compute radial density and velocity profiles
+    Computes radial density and velocity profiles
     
     Inputs:
         r: radius array
@@ -163,25 +163,25 @@ def compute_profiles(r, v_rad, m, rmin=1, rmax=300):
 # %% Compute R200 and plot determination curve
 def compute_R200(data, COM):
     """
-    Determine R200: where enclosed density = 200 × critical density
+    Determine R200: where enclosed density=200 × critical density
     
     Inputs:
         data: dict, merged data
         COM: array, center of mass
     Returns:
         R200: float, radius in kpc
-    (Help from Swapnaneel: implementation reference from R200)
+    (Help/Worked with Swapnaneel: implementation reference from R200)
     """
     x = data['x']-COM[0]
     y = data['y']-COM[1]
     z = data['z']-COM[2]
     m = data['m']
-    r = np.sqrt(x**2 +y**2 +z**2)
+    r = np.sqrt(x**2+y**2+z**2)
     radii = np.sort(r.copy())
     mass_enclosed = np.zeros(len(radii))
     for i in range(len(radii)):
         mass_enclosed[i] = np.sum(m[r < radii[i]])
-    density_enclosed = mass_enclosed/((4/3) *np.pi *radii**3)
+    density_enclosed = mass_enclosed/((4/3)*np.pi*radii**3)
     p_c = (8.5e-27 *u.kg/u.m**3).to(u.Msun/u.kpc**3)
     limit = 200*p_c.value
     idx = np.argmin(np.abs(density_enclosed-limit))
@@ -201,61 +201,56 @@ def compute_R200(data, COM):
 
 
 # %% Plot density and velocity profiles
-def plot_profiles_with_R200(r_mid, density, v_rad_avg, R200):
-    """Plot density profile and velocity profile with model fits
-
-    Inputs:
-        r_mid: bin center array
-        density: density values
-        v_rad_avg: average radial velocity
-        R200: float, fit limit radius
-    (Homework 6 visualization)
-    (Assisted help from ChatGPT with plotting)
+def plot_density_with_fits(r_mid, density, v_rad_avg, R200):
     """
-    plt.figure(figsize=(12, 5))
+    Plot density profile with Hernquist and NFW fits.
+    Used some parts from Homework 6
+    """
+    plt.figure(figsize=(6, 5))
 
-    # Remove invalid density points (zeros, NaNs, infs)
-    valid = (density > 0) & (~np.isnan(density)) & (~np.isinf(density))
+    valid =(density > 0) & (~np.isnan(density)) & (~np.isinf(density))
     r_valid = r_mid[valid]
     d_valid = density[valid]
     v_valid = v_rad_avg[valid]
 
-    # Apply fit mask: only use points with moderate velocities and r > 10 kpc
     fit_mask = (np.abs(v_valid) < 30) & (r_valid > 10)
     r_fit = r_valid[fit_mask]
     d_fit = d_valid[fit_mask]
 
-    # Subplot 1: Density profile
-    plt.subplot(1, 2, 1)
-    plt.loglog(r_mid, density, 'k-', label='Simulated Density')
-    # plt.loglog(r_fit, d_fit, 'go', label='Fit Region')  # <-- Commented out green fitted line
-
-    # Generate model radius values
     r_model = np.logspace(np.log10(min(r_valid)), np.log10(max(r_valid)), 200)
 
-    # Hernquist model fit
+    # Plot data
+    plt.loglog(r_mid,density, 'k-', label='Simulated Density')
+
+    #plot Hernquist and NFW
     popt_h, _ = curve_fit(hernquist_density, r_fit, d_fit, p0=[1e7, 30], maxfev=100000)
     plt.loglog(r_model, hernquist_density(r_model, *popt_h), 'r--',
                label=f'Hernquist Fit (a={popt_h[1]:.1f} kpc)')
-
-    # NFW model fit
     popt_n, _ = curve_fit(nfw_density, r_fit, d_fit, p0=[1e7, 30], maxfev=100000)
     plt.loglog(r_model, nfw_density(r_model, *popt_n), 'b--',
                label=f'NFW Fit (r$_s$={popt_n[1]:.1f} kpc)')
 
-    # Plot R200 vertical line
+    #Add R200
     plt.axvline(R200, color='purple', linestyle=':', label=f'R200 = {R200:.1f} kpc')
     plt.xlabel('Radius (kpc)')
     plt.ylabel('Density (Msun/kpc$^3$)')
-    plt.title('Radial Density Profile')
+    plt.title('Radial Density Profile with Fits')
     plt.grid(True, which='both', ls='--')
     plt.legend()
+    plt.tight_layout()
+    plt.savefig("Density_Profile_Fits.png", dpi=300)
+    plt.show()
 
-    # Subplot 2: Radial velocity profile
-    plt.subplot(1, 2, 2)
-    plt.plot(r_mid, v_rad_avg, 'b-', label='Average $v_{{rad}}$')
-    plt.axhline(30, color='gray', ls='--', lw=0.5) #These are the radial velocity limits (±30 km/s) within which we                                   
-    plt.axhline(-30, color='gray', ls='--', lw=0.5) # consider the motion 'quiet' or suitable for fitting density profiles.
+    
+def plot_radial_velocity_profile(r_mid, v_rad_avg):
+    """
+    Plot average radial velocity profile.
+    """
+    
+    plt.figure(figsize=(6, 5))
+    plt.plot(r_mid, v_rad_avg, 'blue', label='Average $v_{{rad}}$')
+    plt.axhline(30, color='purple', ls='--', lw=0.5)
+    plt.axhline(-30, color='purple', ls='--', lw=0.5)
     plt.xlabel('Radius (kpc)')
     plt.ylabel('Average Radial Velocity (km/s)')
     plt.title('Radial Velocity Profile')
@@ -263,12 +258,9 @@ def plot_profiles_with_R200(r_mid, density, v_rad_avg, R200):
     plt.legend()
     plt.xlim(0, 300)
     plt.ylim(-100, 100)
-
     plt.tight_layout()
-    plt.savefig("MWM31_HaloProfiles_R200.png", dpi=300)
+    plt.savefig("Radial_Velocity_Profile.png", dpi=300)
     plt.show()
-
-    
 
 
 # %% Plot dark matter spatial contour
@@ -279,12 +271,12 @@ def plot_dm_contour(merged, COM):
     Inputs:
         merged: dict, merged particle data
         COM: array, center of mass
-    (From Lab 7)
+    From Lab 7
     """
-    x = merged['x'] - COM[0]
-    y = merged['y'] - COM[1]
+    x = merged['x']-COM[0]
+    y = merged['y']-COM[1]
     bins = 500
-    extent = 300
+    extent =300
     H, xedges, yedges = np.histogram2d(x, y, bins=bins, range=[[-extent, extent], [-extent, extent]])
     H = np.log10(H + 1)
     plt.figure(figsize=(8, 6))
@@ -298,10 +290,11 @@ def plot_dm_contour(merged, COM):
     plt.show()
 
 # %% Execute all analysis steps
-merged = merge_snapshots(file1, file2)
-COM = compute_combined_COM(merged)
-r, v_rad = compute_radial_quantities(merged, COM)
+merged=merge_snapshots(file1, file2)
+COM=compute_combined_COM(merged)
+r,v_rad =compute_radial_quantities(merged, COM)
 r_mid, density, v_rad_avg = compute_profiles(r, v_rad, merged['m'])
-R200 = compute_R200(merged, COM)
-plot_profiles_with_R200(r_mid, density, v_rad_avg, R200)
-plot_dm_contour(merged, COM)
+R200 =compute_R200(merged, COM)
+plot_density_with_fits(r_mid,density, v_rad_avg,R200)
+plot_radial_velocity_profile(r_mid, v_rad_avg)
+plot_dm_contour(merged,COM)
