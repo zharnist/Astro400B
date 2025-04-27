@@ -145,7 +145,7 @@ def compute_profiles(r, v_rad, m, rmin=1, rmax=300):
         v_rad_avg: average velocity per bin
     From Homework 6
     """
-    r_bins = np.arange(0.1, 300, 1)
+    r_bins = np.arange(1, rmax, 3)
     r_mid = 0.5*(r_bins[:-1] +r_bins[1:])
     density = np.zeros(np.size(r_bins)-1)
     v_rad_avg = np.zeros(np.size(r_bins)-1)
@@ -264,30 +264,51 @@ def plot_radial_velocity_profile(r_mid, v_rad_avg):
 
 
 # %% Plot dark matter spatial contour
+
 def plot_dm_contour(merged, COM):
     """
-    Create 2D contour of dark matter distribution
+    Create 2D filled contour plot of dark matter distribution.
     
     Inputs:
         merged: dict, merged particle data
         COM: array, center of mass
-    From Lab 7
+        
+    (version with filled contours.)
+    (Plot assistance with Chatgpt)
     """
-    x = merged['x']-COM[0]
-    y = merged['y']-COM[1]
+    x = merged['x'] - COM[0]
+    y = merged['y'] - COM[1]
     bins = 500
-    extent =300
+    extent = 300
+
+    # 2D histogram
     H, xedges, yedges = np.histogram2d(x, y, bins=bins, range=[[-extent, extent], [-extent, extent]])
+
+    # Take log scale
     H = np.log10(H + 1)
+
+    xcenters = 0.5 * (xedges[:-1] + xedges[1:]) 
+    ycenters = 0.5 * (yedges[:-1] + yedges[1:])
+    X, Y = np.meshgrid(xcenters, ycenters)
+
     plt.figure(figsize=(8, 6))
-    plt.imshow(H.T, origin='lower', cmap='magma', extent=[-extent, extent, -extent, extent])
+
+    levels = np.linspace(np.min(H[H > 0]), np.max(H), 50)
+
+    contourf = plt.contourf(X, Y, H.T, levels=levels, cmap='magma')
+    
+    cbar = plt.colorbar(contourf)
+    cbar.set_label('log$_{10}$(N + 1)')  
+
     plt.xlabel('x [kpc]')
     plt.ylabel('y [kpc]')
-    plt.title('Dark Matter Particle Distribution')
-    plt.colorbar(label='log₁₀(N)')
+    plt.title('Dark Matter Particle Distribution (Filled Contours)')
+    plt.xlim(-extent, extent)
+    plt.ylim(-extent, extent)
     plt.tight_layout()
     plt.savefig("DarkMatter_Contour.png", dpi=300)
     plt.show()
+
 
 # %% Execute all analysis steps
 merged=merge_snapshots(file1, file2)
