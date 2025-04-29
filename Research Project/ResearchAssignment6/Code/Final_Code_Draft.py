@@ -46,6 +46,9 @@ def hernquist_density(r, rho0, a):
     """
     return rho0/((r/a)*(1 + r/a)**3)
 
+# Hernquist profile describes a realistic model for galactic halos,
+# behaving as 1/r near the center and falling as 1/r^4 at large radii.
+
 # %% Define NFW density model
 def nfw_density(r, rho0, rs):
     """
@@ -61,7 +64,8 @@ def nfw_density(r, rho0, rs):
     return rho0/((r/rs)*(1+r/rs)**2)
 
 
-
+# The NFW profile emerges from cosmological simulations and represents
+# dark matter halo structures in the universe.
 
 # %% Merge two halo snapshots
 file1 = 'MW_801.txt'
@@ -78,10 +82,12 @@ def merge_snapshots(file1, file2, ptype=1):
         dictionary with merged m, x, y, z, vx, vy, vz arrays (position and velocities)
     From Homework2
     """
-    _, _, data1 = Read(file1)
-    _, _, data2 = Read(file2)
-    idx1 = np.where(data1['type'] == ptype)
+    _, _, data1 = Read(file1) #reads first file
+    _, _, data2 = Read(file2) #reads second file
+    idx1 = np.where(data1['type'] == ptype) #Filters the dark matter particles
     idx2 = np.where(data2['type'] == ptype)
+    
+    #merge mass and coordinates from both galaixes
     m = np.concatenate((data1['m'][idx1], data2['m'][idx2]))*1e10
     x = np.concatenate((data1['x'][idx1], data2['x'][idx2]))
     y = np.concatenate((data1['y'][idx1], data2['y'][idx2]))
@@ -90,6 +96,9 @@ def merge_snapshots(file1, file2, ptype=1):
     vy = np.concatenate((data1['vy'][idx1], data2['vy'][idx2]))
     vz = np.concatenate((data1['vz'][idx1], data2['vz'][idx2]))
     return {'m': m, 'x': x, 'y': y, 'z': z, 'vx': vx, 'vy': vy, 'vz': vz}
+
+# Combining MW and M31 dark matter particles into one dataset allows
+# studying the full remnant halo structure after the merger.
 
 # %% Compute COM
 def compute_combined_COM(merged):
@@ -102,10 +111,14 @@ def compute_combined_COM(merged):
     From Homework 4
     """
     m,x,y,z = merged['m'], merged['x'], merged['y'], merged['z']
-    COM_x = np.sum(x*m)/np.sum(m)
+    #mass-weighted in x,y,z
+    COM_x = np.sum(x*m)/np.sum(m) 
     COM_y = np.sum(y*m)/np.sum(m)
     COM_z = np.sum(z*m)/np.sum(m)
     return np.array([COM_x, COM_y, COM_z])
+
+# Centering the system is crucial for accurate radial calculations
+# and for symmetry in profiles.
 
 # %% Compute radial distances and velocities
 def compute_radial_quantities(merged, COM):
@@ -119,15 +132,20 @@ def compute_radial_quantities(merged, COM):
         v_rad: radial velocity array
     Used from Homework 6
     """
+    #Shifts the positions to the Center of Mass frame
     x = merged['x']-COM[0]
     y = merged['y']-COM[1]
     z = merged['z']-COM[2]
+    #The velocities for x,y,z
     vx, vy, vz = merged['vx'], merged['vy'], merged['vz']
-    r =np.sqrt(x**2 +y**2 +z**2)
-    with np.errstate(divide='ignore', invalid='ignore'):
-        v_rad = (vx*x+ vy+ y+vz*z)/r
-        v_rad[r== 0] = 0.0
+    r =np.sqrt(x**2 +y**2 +z**2) #radial distance
+    with np.errstate(divide='ignore', invalid='ignore'): #help from Chatgpt
+        v_rad = (vx*x+ vy+ y+vz*z)/r #Radial velocity projection
+        v_rad[r== 0] = 0.0 #fixes the divide by zero error
     return r, v_rad
+
+# Useful for checking system relaxation: a fully relaxed halo should have
+# near-zero average radial velocities.
 
 # %% Compute density and radial velocity profiles
 def compute_profiles(r, v_rad, m, rmin=1, rmax=300):
@@ -145,8 +163,8 @@ def compute_profiles(r, v_rad, m, rmin=1, rmax=300):
         v_rad_avg: average velocity per bin
     From Homework 6
     """
-    r_bins = np.arange(1, rmax, 3)
-    r_mid = 0.5*(r_bins[:-1] +r_bins[1:])
+    r_bins = np.arange(1, rmax, 3) #radial bin edges
+    r_mid = 0.5*(r_bins[:-1] +r_bins[1:]) #bin centers
     density = np.zeros(np.size(r_bins)-1)
     v_rad_avg = np.zeros(np.size(r_bins)-1)
     volume_shells = (4/3)*np.pi*(r_bins[1:]**3 -r_bins[:-1]**3)
@@ -160,6 +178,9 @@ def compute_profiles(r, v_rad, m, rmin=1, rmax=300):
             v_rad_avg[i] = 0.0
     return r_mid, density, v_rad_avg
 
+# Binning particles radially produces smooth density profiles to fit models against.
+
+
 # %% Compute R200 and plot determination curve
 def compute_R200(data, COM):
     """
@@ -172,19 +193,26 @@ def compute_R200(data, COM):
         R200: float, radius in kpc
     (Help/Worked with Swapnaneel: implementation reference from R200)
     """
+    #Shifts to COM frame
     x = data['x']-COM[0]
     y = data['y']-COM[1]
     z = data['z']-COM[2]
     m = data['m']
-    r = np.sqrt(x**2+y**2+z**2)
-    radii = np.sort(r.copy())
+    r = np.sqrt(x**2+y**2+z**2) #Radial distance
+    radii = np.sort(r.copy()) #sorts for all mass calculations
     mass_enclosed = np.zeros(len(radii))
+    #computes mass enclosed within the radius
     for i in range(len(radii)):
         mass_enclosed[i] = np.sum(m[r < radii[i]])
     density_enclosed = mass_enclosed/((4/3)*np.pi*radii**3)
+    
+    #This is the critical density of the universe which is converted to Msun/kpc^3
     p_c = (8.5e-27 *u.kg/u.m**3).to(u.Msun/u.kpc**3)
-    limit = 200*p_c.value
-    idx = np.argmin(np.abs(density_enclosed-limit))
+    
+    limit = 200*p_c.value #200xpcrit
+    idx = np.argmin(np.abs(density_enclosed-limit)) #finds radius where the enclosed density is closest to the linit
+    
+    #plot the enclosed density
     plt.figure(figsize=(6, 5))
     plt.loglog(radii, density_enclosed, label='Enclosed Density')
     plt.axhline(limit, color='red', linestyle='--', label='200 × ρ_crit')
@@ -199,21 +227,37 @@ def compute_R200(data, COM):
     plt.show()
     return radii[idx]
 
+# R200 marks the boundary of the halo where it becomes gravitationally bound.
+# It is critical for defining the size and mass of the final merged halo.
+
 
 # %% Plot density and velocity profiles
 def plot_density_with_fits(r_mid, density, v_rad_avg, R200):
     """
     Plot density profile with Hernquist and NFW fits.
+    
+    Parameters:
+        r_mid : array
+            Midpoints of radial bins.
+        density : array
+            Mass density profile.
+        v_rad_avg : array
+            Average radial velocity profile.
+        R200 : float
+            Virial radius in kpc.
+
+    Returns:
+        None
     Used some parts from Homework 6
     """
     plt.figure(figsize=(6, 5))
-
+    #Select good data points
     valid =(density > 0) & (~np.isnan(density)) & (~np.isinf(density))
     r_valid = r_mid[valid]
     d_valid = density[valid]
     v_valid = v_rad_avg[valid]
 
-    fit_mask = (np.abs(v_valid) < 30) & (r_valid > 10)
+    fit_mask = (np.abs(v_valid) < 30) & (r_valid > 10) #only the relaxed region
     r_fit = r_valid[fit_mask]
     d_fit = d_valid[fit_mask]
 
@@ -223,9 +267,12 @@ def plot_density_with_fits(r_mid, density, v_rad_avg, R200):
     plt.loglog(r_mid,density, 'k-', label='Simulated Density')
 
     #plot Hernquist and NFW
+    #Hernquist Plot
     popt_h, _ = curve_fit(hernquist_density, r_fit, d_fit, p0=[1e7, 30], maxfev=100000)
     plt.loglog(r_model, hernquist_density(r_model, *popt_h), 'r--',
                label=f'Hernquist Fit (a={popt_h[1]:.1f} kpc)')
+    
+    #NFW Plot
     popt_n, _ = curve_fit(nfw_density, r_fit, d_fit, p0=[1e7, 30], maxfev=100000)
     plt.loglog(r_model, nfw_density(r_model, *popt_n), 'b--',
                label=f'NFW Fit (r$_s$={popt_n[1]:.1f} kpc)')
@@ -240,11 +287,37 @@ def plot_density_with_fits(r_mid, density, v_rad_avg, R200):
     plt.tight_layout()
     plt.savefig("Density_Profile_Fits.png", dpi=300)
     plt.show()
+    
+    #Compute Mean Square Error to determine which plot fits best:
+    
+    hernquist_fit = hernquist_density(r_fit, *popt_h)
+    nfw_fit = nfw_density(r_fit, *popt_n)
+
+    mse_hernquist = np.mean((d_fit-hernquist_fit)**2)
+    mse_nfw = np.mean((d_fit-nfw_fit)**2)
+    
+    print(f"MSE for Hernquist fit: {mse_hernquist:.3e}")
+    print(f"MSE for NFW fit: {mse_nfw:.3e}")
+    
+
+
+# Fitting theoretical models to the simulation data lets us characterize the
+# shape and mass distribution of the merger remnant.
+
 
     
 def plot_radial_velocity_profile(r_mid, v_rad_avg):
     """
     Plot average radial velocity profile.
+    
+    Parameters:
+        r_mid : array
+            Midpoints of radial bins.
+        v_rad_avg : array
+            Average radial velocity per bin.
+
+    Returns:
+        None
     """
     
     plt.figure(figsize=(6, 5))
@@ -262,6 +335,9 @@ def plot_radial_velocity_profile(r_mid, v_rad_avg):
     plt.savefig("Radial_Velocity_Profile.png", dpi=300)
     plt.show()
 
+# This shows whether the halo is dynamically relaxed: if radial velocities
+# fluctuate symmetrically around 0, the system is near equilibrium.
+
 
 # %% Plot dark matter spatial contour
 
@@ -276,10 +352,11 @@ def plot_dm_contour(merged, COM):
     (version with filled contours.)
     (Plot assistance with Chatgpt)
     """
+    #Shifts to COM
     x = merged['x'] - COM[0]
     y = merged['y'] - COM[1]
-    bins = 500
-    extent = 300
+    bins = 500 #resolution
+    extent = 300 #viewing box size (kpc)
 
     # 2D histogram
     H, xedges, yedges = np.histogram2d(x, y, bins=bins, range=[[-extent, extent], [-extent, extent]])
@@ -309,13 +386,18 @@ def plot_dm_contour(merged, COM):
     plt.savefig("DarkMatter_Contour.png", dpi=300)
     plt.show()
 
+# The 2D contour shows the spatial structure of the dark matter halo remnant,
+# highlighting core density and outer envelope shapes.
+
 
 # %% Execute all analysis steps
-merged=merge_snapshots(file1, file2)
-COM=compute_combined_COM(merged)
-r,v_rad =compute_radial_quantities(merged, COM)
-r_mid, density, v_rad_avg = compute_profiles(r, v_rad, merged['m'])
-R200 =compute_R200(merged, COM)
+merged=merge_snapshots(file1, file2) #merge MW and M31 particles
+COM=compute_combined_COM(merged) #compute the COM
+r,v_rad =compute_radial_quantities(merged, COM) #Compute the radial distance and velocities
+r_mid, density, v_rad_avg = compute_profiles(r, v_rad, merged['m']) #compute profiles
+R200 =compute_R200(merged, COM) #find R200
+
+#plot the results
 plot_density_with_fits(r_mid,density, v_rad_avg,R200)
 plot_radial_velocity_profile(r_mid, v_rad_avg)
 plot_dm_contour(merged,COM)
